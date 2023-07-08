@@ -1,24 +1,27 @@
-from fastapi import FastAPI, status, Response
+from fastapi import FastAPI, HTTPException
+import sqlite3 as sq
+
 
 app = FastAPI(
     title='Kamstri game'
 )
 
-users = [
-    {'id': 1, 'name': 'John', 'country': 'Ukraine', 'score': 0},
-    {'id': 2, 'name': 'Bob', 'country': 'Germany', 'score': 1},
-    {'id': 3, 'name': 'Miranda', 'country': 'France', 'score': 2},
-    {'id': 4, 'name': 'Alex', 'country': 'Italy', 'score': 1},
-]
 
+@app.post('/connect/{player_id}')
+def connect(player_id: int):
+    with sq.connect('database.db') as con:
+        cur = con.cursor()
 
-@app.post('/connect/{user_id}')
-def connect(user_id: int):
-    current_user = [user for user in users if user.get('id') == user_id]
-    if current_user:
-        return current_user
-    else:
-        return Response(status_code=status.HTTP_401_UNAUTHORIZED)
+        cur.execute(f'SELECT * FROM players WHERE player_id = {player_id}')
+        player = cur.fetchone()
+
+        if player is None:
+            raise HTTPException(status_code=404, detail='Player is undefined')
+
+        return {'player_id': player[0],
+                'name': player[1],
+                'country': player[2],
+                'score': player[3]}
 
 
 @app.post('/register/')
